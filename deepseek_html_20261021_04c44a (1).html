@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0e1730" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>Abdou & Nada — Mobile</title>
+<style>
+  :root{
+    --gold:#e8c46a; --gold-bright:#ffd77a; --parchment:#f2e3c2; --ink:#2a1a10;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --safe-l:env(safe-area-inset-left,0px);
+    --safe-r:env(safe-area-inset-right,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#000;
+    font-family:Georgia,'Times New Roman',serif;color:var(--parchment);
+    user-select:none;-webkit-user-select:none;overscroll-behavior:none;touch-action:none;}
+  #game{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;}
+  canvas{display:block;touch-action:none;}
+
+  /* ---------- Title ---------- */
+  .overlay{position:fixed;inset:0;display:none;z-index:20;
+    background:radial-gradient(ellipse at center,rgba(20,10,25,.94),rgba(0,0,0,.99));
+    padding:calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) calc(16px + var(--safe-l));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .overlay.show{display:flex;flex-direction:column;}
+  #title{justify-content:center;align-items:center;text-align:center;}
+  #title .crest{font-size:46px;margin-bottom:4px;filter:drop-shadow(0 0 18px rgba(255,215,122,.7));}
+  #title h1{font-size:clamp(26px,9vw,42px);margin:0;letter-spacing:3px;
+    background:linear-gradient(180deg,#fff3cf,#e8c46a 60%,#a87c22);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 2px 30px rgba(232,196,106,.35);font-weight:400;}
+  #title h2{font-size:clamp(9px,3vw,13px);letter-spacing:5px;color:#c9a86a;margin:6px 0 22px;font-weight:400;text-transform:uppercase;}
+  #title .sub{font-style:italic;color:#9a8f7a;max-width:440px;line-height:1.55;font-size:clamp(12px,3.4vw,14px);margin-bottom:26px;padding:0 10px;}
+  .btn{display:block;width:100%;max-width:340px;cursor:pointer;border:1px solid var(--gold);
+    background:linear-gradient(180deg,rgba(232,196,106,.16),rgba(232,196,106,.04));
+    color:var(--gold-bright);padding:16px 22px;margin:8px 0;border-radius:6px;font-family:inherit;
+    font-size:15px;letter-spacing:2px;text-transform:uppercase;transition:.15s;text-align:center;}
+  .btn:active{background:rgba(232,196,106,.35);color:#fff;transform:scale(.98);}
+  .btn:disabled{opacity:.35;}
+  .btn.small{max-width:220px;padding:12px 18px;font-size:13px;}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none;}
+  #hud.show{display:block;}
+  #hud .top{position:absolute;top:calc(var(--safe-t) + 6px);left:calc(var(--safe-l) + 8px);right:calc(var(--safe-r) + 8px);
+    display:flex;justify-content:space-between;align-items:flex-start;gap:6px;}
+  #hud .chapter{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    text-shadow:0 2px 8px #000;background:rgba(0,0,0,.45);padding:6px 10px;border-radius:4px;
+    border:1px solid rgba(232,196,106,.3);max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #hud .buttons{display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end;}
+  #hud .buttons button{pointer-events:auto;cursor:pointer;background:rgba(10,6,14,.8);
+    border:1px solid rgba(232,196,106,.45);color:var(--gold);font-family:inherit;font-size:16px;
+    padding:0;border-radius:6px;transition:.15s;width:42px;height:42px;display:flex;align-items:center;justify-content:center;}
+  #hud .buttons button:active{background:rgba(232,196,106,.4);transform:scale(.94);}
+  #hud .bottom{position:absolute;bottom:calc(var(--safe-b) + 8px);left:calc(var(--safe-l) + 8px);right:calc(var(--safe-r) + 8px);
+    display:flex;flex-direction:column;gap:8px;align-items:flex-start;}
+  #hud .objective{color:#d9cbaf;font-size:12px;line-height:1.4;font-style:italic;
+    text-shadow:0 1px 6px #000;background:rgba(0,0,0,.55);padding:8px 12px;border-radius:6px;
+    border-left:2px solid var(--gold);max-width:100%;}
+  #hud .objective b{color:var(--gold-bright);font-style:normal;letter-spacing:1px;}
+  #hud .stats{display:flex;gap:12px;color:#c9bb9e;font-size:12px;background:rgba(0,0,0,.5);
+    padding:6px 10px;border-radius:4px;}
+  #hud .stats b{color:var(--gold-bright);}
+  #hearts{color:#e06a7a;letter-spacing:1px;}
+
+  /* ---------- Virtual joystick ---------- */
+  #stick{position:fixed;bottom:calc(var(--safe-b) + 90px);left:calc(var(--safe-l) + 16px);
+    width:118px;height:118px;border-radius:50%;z-index:15;display:none;
+    background:radial-gradient(circle,rgba(232,196,106,.12),rgba(232,196,106,.02));
+    border:1.5px solid rgba(232,196,106,.4);touch-action:none;}
+  #stick.show{display:block;}
+  #stick .knob{position:absolute;left:50%;top:50%;width:52px;height:52px;border-radius:50%;
+    transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,215,122,.85),rgba(200,160,80,.6));
+    border:1.5px solid var(--gold-bright);box-shadow:0 0 20px rgba(255,215,122,.5);pointer-events:none;}
+
+  /* ---------- Action button ---------- */
+  #action{position:fixed;bottom:calc(var(--safe-b) + 100px);right:calc(var(--safe-r) + 20px);
+    width:82px;height:82px;border-radius:50%;z-index:15;display:none;
+    border:2px solid var(--gold-bright);background:radial-gradient(circle,rgba(232,196,106,.5),rgba(90,40,50,.8));
+    color:#fff;font-family:inherit;font-size:26px;cursor:pointer;
+    box-shadow:0 0 26px rgba(255,215,122,.55),inset 0 0 20px rgba(0,0,0,.3);
+    touch-action:manipulation;transition:.1s;}
+  #action.show{display:flex;align-items:center;justify-content:center;}
+  #action:active{transform:scale(.9);}
+
+  /* ---------- Dialogue (bottom sheet) ---------- */
+  #dialogue{z-index:30;background:linear-gradient(0deg,rgba(0,0,0,.96) 0%,rgba(0,0,0,.55) 55%,transparent 80%);
+    justify-content:flex-end;}
+  #dialogue .dbox{width:100%;max-width:640px;margin:0 auto;padding:18px 18px calc(18px + var(--safe-b));
+    background:linear-gradient(180deg,rgba(30,18,28,.98),rgba(14,9,16,.99));
+    border-top:1.5px solid var(--gold);border-radius:14px 14px 0 0;
+    box-shadow:0 -10px 50px rgba(0,0,0,.9),inset 0 0 40px rgba(232,196,106,.05);
+    animation:sheetUp .28s ease;}
+  @keyframes sheetUp{from{transform:translateY(30px);opacity:.5;}to{transform:none;opacity:1;}}
+  #dialogue .who{color:var(--gold-bright);letter-spacing:2px;font-size:12px;text-transform:uppercase;margin-bottom:8px;}
+  #dialogue .line{font-size:15px;line-height:1.55;color:#f2e8d5;min-height:2.4em;}
+  #dialogue .choices{margin-top:14px;display:flex;flex-direction:column;gap:8px;}
+  #dialogue .choice{cursor:pointer;border:1px solid rgba(232,196,106,.4);
+    background:rgba(232,196,106,.06);padding:14px 16px;border-radius:8px;
+    color:#e9dcc0;font-family:inherit;font-size:14px;text-align:left;line-height:1.4;transition:.15s;}
+  #dialogue .choice:active{background:rgba(232,196,106,.3);color:#fff;}
+  #dialogue .continue{color:#9a8f7a;font-size:11px;letter-spacing:2px;margin-top:10px;text-align:right;font-style:italic;}
+
+  /* ---------- Toasts ---------- */
+  #toasts{position:fixed;top:calc(var(--safe-t) + 58px);left:50%;transform:translateX(-50%);
+    z-index:40;display:flex;flex-direction:column;gap:6px;pointer-events:none;width:100%;padding:0 12px;align-items:center;}
+  .toast{background:linear-gradient(180deg,rgba(40,26,36,.97),rgba(18,12,20,.98));
+    border:1px solid var(--gold);border-radius:6px;padding:10px 16px;color:#f2e8d5;font-size:12px;
+    letter-spacing:1px;box-shadow:0 6px 30px rgba(0,0,0,.7),0 0 20px rgba(232,196,106,.2);
+    animation:toastIn .3s ease,toastOut .5s ease 2.7s forwards;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+  @keyframes toastOut{to{opacity:0;transform:translateY(-10px);}}
+
+  /* ---------- Panels ---------- */
+  .panel{position:relative;width:100%;max-width:640px;margin:0 auto;padding:18px 0;}
+  .panel h3{color:var(--gold);letter-spacing:3px;text-transform:uppercase;font-weight:400;
+    margin:0 0 16px;border-bottom:1px solid rgba(232,196,106,.3);padding-bottom:10px;font-size:16px;text-align:center;}
+  .close-x{position:fixed;top:calc(var(--safe-t) + 10px);right:calc(var(--safe-r) + 14px);
+    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    font-size:26px;color:var(--gold);cursor:pointer;background:rgba(10,6,14,.7);
+    border:1px solid rgba(232,196,106,.4);border-radius:50%;z-index:50;line-height:1;}
+  .close-x:active{background:rgba(232,196,106,.3);}
+  .grid{display:grid;grid-template-columns:1fr;gap:10px;}
+  .item{background:linear-gradient(180deg,rgba(40,26,36,.9),rgba(18,12,20,.95));
+    border:1px solid rgba(232,196,106,.35);border-radius:8px;padding:14px;}
+  .item .ic{font-size:24px;margin-bottom:4px;}
+  .item .nm{color:var(--gold-bright);font-size:14px;letter-spacing:1px;margin-bottom:4px;}
+  .item .ds{color:#a89a80;font-size:12px;line-height:1.45;}
+  .item.done{border-color:rgba(120,200,140,.5);}
+  .item.done .nm{color:#9fdca8;}
+  .empty-note{color:#6f6555;font-style:italic;font-size:13px;padding:24px 8px;text-align:center;}
+  .warn{color:#e0a86a;font-size:12px;font-style:italic;margin-top:8px;text-align:center;}
+  .scroll-wrap{overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px;}
+
+  /* ---------- Settings sliders ---------- */
+  input[type=range]{width:100%;accent-color:#e8c46a;height:34px;margin-top:6px;}
+
+  /* ---------- Ending ---------- */
+  #ending{justify-content:center;padding:calc(var(--safe-t) + 12px) 12px calc(var(--safe-b) + 12px);}
+  #ending .letter{background:linear-gradient(160deg,#f5e8c9,#e6d2a6);color:var(--ink);border-radius:8px;
+    padding:22px 20px;box-shadow:0 20px 70px rgba(0,0,0,.9),inset 0 0 60px rgba(160,120,50,.25);
+    font-size:14px;line-height:1.7;border:1px solid #b8985a;max-height:78vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #ending .letter h2{font-family:Georgia,serif;font-weight:400;letter-spacing:1px;color:#5a3a18;
+    margin:0 0 14px;text-align:center;font-size:19px;}
+  #ending .letter .sign{margin-top:18px;text-align:right;font-style:italic;color:#6a4a20;}
+  #ending .letter textarea{width:100%;min-height:140px;background:rgba(255,255,255,.45);
+    border:1px dashed rgba(90,60,20,.6);border-radius:6px;padding:12px;font-family:Georgia,serif;
+    font-size:15px;color:#3a2810;line-height:1.6;resize:vertical;margin-top:8px;}
+  #ending .ending-note{color:#c9a86a;text-align:center;font-size:11px;letter-spacing:3px;
+    text-transform:uppercase;margin-bottom:10px;}
+  #ending .end-btns{display:flex;gap:8px;margin-top:12px;}
+  #ending .end-btns .btn{margin:0;padding:13px 10px;font-size:12px;flex:1;}
+
+  /* ---------- Map canvas ---------- */
+  #map-canvas{width:100%;max-width:520px;border:1px solid rgba(232,196,106,.3);border-radius:8px;background:#0b1020;display:block;margin:0 auto;}
+
+  /* ---------- Landscape: compact layout ---------- */
+  @media (orientation:landscape) and (max-height:520px){
+    #stick{bottom:calc(var(--safe-b) + 14px);width:100px;height:100px;}
+    #stick .knob{width:44px;height:44px;}
+    #action{bottom:calc(var(--safe-b) + 18px);width:70px;height:70px;font-size:22px;}
+    #hud .objective{font-size:11px;padding:6px 10px;max-width:55%;}
+    #dialogue .dbox{padding:12px 16px calc(12px + var(--safe-b));}
+    #dialogue .line{font-size:14px;min-height:2em;}
+    #dialogue .choice{padding:11px 14px;font-size:13px;}
+    #title .sub{display:none;}
+    .panel h3{font-size:14px;margin-bottom:10px;padding-bottom:8px;}
+  }
+  /* ---------- Tablet / large phone ---------- */
+  @media (min-width:600px){
+    .grid{grid-template-columns:1fr 1fr;}
+    #dialogue .dbox{border-radius:16px;margin:0 auto 16px;width:calc(100% - 32px);}
+    #stick{bottom:calc(var(--safe-b) + 110px);}
+  }
+  @media (min-width:900px){
+    .grid{grid-template-columns:1fr 1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="game"><canvas id="cv"></canvas></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="top">
+    <div class="chapter" id="hud-chapter">Chapter I</div>
+    <div class="buttons">
+      <button id="btn-journal" aria-label="Journal">📖</button>
+      <button id="btn-bag" aria-label="Satchel">🎒</button>
+      <button id="btn-map" aria-label="Map">🗺️</button>
+      <button id="btn-pause" aria-label="Pause">☰</button>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="objective" id="hud-objective"></div>
+    <div class="stats">
+      <span id="hearts">❤❤❤</span>
+      <span>Bond <b id="hud-bond">0</b></span>
+    </div>
+  </div>
+</div>
+
+<!-- Virtual stick & action -->
+<div id="stick"><div class="knob"></div></div>
+<button id="action" aria-label="Interact">✦</button>
+
+<div id="toasts"></div>
+
+<!-- Title -->
+<div class="overlay show" id="title">
+  <div class="crest">🏰</div>
+  <h1>ABDOU &amp; NADA</h1>
+  <h2>The Kingdom of Eternal Love</h2>
+  <div class="sub">A romantic adventure through forgotten kingdoms and a love time could not undo.</div>
+  <button class="btn" id="btn-new">Begin the Legend</button>
+  <button class="btn" id="btn-continue">Continue Journey</button>
+  <button class="btn small" id="btn-howto">How to Play</button>
+</div>
+
+<!-- Dialogue -->
+<div class="overlay" id="dialogue">
+  <div class="dbox">
+    <div class="who" id="dlg-who"></div>
+    <div class="line" id="dlg-line"></div>
+    <div class="choices" id="dlg-choices"></div>
+    <div class="continue" id="dlg-cont">tap to continue ▸</div>
+  </div>
+</div>
+
+<!-- Journal -->
+<div class="overlay" id="journal">
+  <div class="close-x" data-close="journal">×</div>
+  <div class="panel">
+    <h3>Quest Journal</h3>
+    <div class="scroll-wrap" style="max-height:calc(100vh - 130px);">
+      <div class="grid" id="journal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bag -->
+<div class="overlay" id="bag">
+  <div class="close-x" data-close="bag">×</div>
+  <div class="panel">
+    <h3>Satchel</h3>
+    <div class="scroll-wrap" style="max-height:calc(100vh - 130px);">
+      <div class="grid" id="bag-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Map -->
+<div class="overlay" id="map">
+  <div class="close-x" data-close="map">×</div>
+  <div class="panel">
+    <h3>Map of the Journey</h3>
+    <canvas id="map-canvas" width="720" height="480"></canvas>
+    <div class="warn">Places you've reached glow upon the map.</div>
+  </div>
+</div>
+
+<!-- Pause -->
+<div class="overlay" id="pause">
+  <div class="panel" style="text-align:center;margin-top:60px;">
+    <h3 style="border:none;margin-bottom:22px;">Paused</h3>
+    <button class="btn" id="btn-resume">Resume</button>
+    <button class="btn" id="btn-save">Save Journey</button>
+    <button class="btn" id="btn-load">Load Journey</button>
+    <button class="btn" id="btn-settings">Settings</button>
+    <button class="btn" id="btn-restart">Restart Chapter I</button>
+    <button class="btn" id="btn-quit">Return to Title</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="overlay" id="settings">
+  <div class="close-x" data-close="settings">×</div>
+  <div class="panel" style="max-width:520px;">
+    <h3>Settings</h3>
+    <div class="scroll-wrap" style="max-height:calc(100vh - 130px);">
+      <div class="item" style="margin-bottom:10px;">
+        <div class="nm">Music</div>
+        <input type="range" id="set-music" min="0" max="100" value="55">
+      </div>
+      <div class="item" style="margin-bottom:10px;">
+        <div class="nm">Sound Effects</div>
+        <input type="range" id="set-sfx" min="0" max="100" value="70">
+      </div>
+      <div class="item" style="margin-bottom:10px;">
+        <div class="nm">Dialogue Speed</div>
+        <input type="range" id="set-speed" min="10" max="90" value="55">
+      </div>
+      <div class="warn">Music &amp; effects are generated on your device. No downloads needed.</div>
+    </div>
+  </div>
+</div>
+
+<!-- How to play -->
+<div class="overlay" id="howto">
+  <div class="close-x" data-close="howto">×</div>
+  <div class="panel" style="max-width:520px;">
+    <h3>How to Play</h3>
+    <div class="scroll-wrap" style="max-height:calc(100vh - 130px);line-height:1.7;font-size:13px;color:#d9cbaf;">
+      <p><b style="color:#ffd77a;">Move</b> — Drag the round joystick (bottom-left) or tap the ground to walk there.</p>
+      <p><b style="color:#ffd77a;">Interact</b> — When a glowing ✦ is near, tap the big round ✦ button (bottom-right) or the ✦ on screen.</p>
+      <p><b style="color:#ffd77a;">Dialogue</b> — Tap the dark text box to continue. Tap a choice to pick it. Choices shape your Bond and ending.</p>
+      <p><b style="color:#ffd77a;">Menu</b> — 📖 Journal, 🎒 Satchel, 🗺️ Map, ☰ Pause at the top-right.</p>
+      <p><b style="color:#ffd77a;">Save</b> — Pause → Save. Continue from the title screen.</p>
+      <p style="font-style:italic;color:#c9a86a;">Six chapters. Every choice matters.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Ending -->
+<div class="overlay" id="ending">
+  <div class="ending-note" id="ending-note">A Love Beyond Time</div>
+  <div class="letter" id="ending-letter"></div>
+  <div class="end-btns">
+    <button class="btn" id="btn-end-edit">Edit Letter</button>
+    <button class="btn" id="btn-end-title">Title</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= CONFIG ================= */
+const SAVE_KEY='abdou_nada_mobile_v1';
+const W=1280,H=720;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
+const rand=(a,b)=>a+Math.random()*(b-a);
+const $=id=>document.getElementById(id);
+
+/* ================= AUDIO ================= */
+const AudioM=(()=>{
+  let ctx=null,master=null,musicGain=null,sfxGain=null,started=false,timer=null,mood='romantic';
+  let musicVol=0.55,sfxVol=0.7;
+  const scales={romantic:[261.63,329.63,392,493.88,587.33,659.25,783.99],
+    mystery:[220,261.63,311.13,349.23,415.3,440,523.25],
+    victory:[261.63,329.63,392,523.25,659.25,783.99,1046.5]};
+  function init(){
+    if(ctx)return;
+    try{
+      ctx=new (window.AudioContext||window.webkitAudioContext)();
+      master=ctx.createGain();master.gain.value=0.9;master.connect(ctx.destination);
+      musicGain=ctx.createGain();musicGain.gain.value=musicVol*0.5;musicGain.connect(master);
+      sfxGain=ctx.createGain();sfxGain.gain.value=sfxVol;sfxGain.connect(master);
+    }catch(e){console.warn(e);}
+  }
+  function resume(){if(ctx&&ctx.state==='suspended')ctx.resume().catch(()=>{});}
+  function note(freq,dur,type='sine',vol=0.2,when=0,dest){
+    if(!ctx)return;
+    dest=dest||musicGain;
+    const t=ctx.currentTime+when;
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol,t+Math.min(0.08,dur*0.2));
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+0.05);
+  }
+  function startMusic(){
+    init();resume();if(!ctx||started)return;started=true;
+    const step=()=>{
+      if(!started||!ctx)return;
+      const s=scales[mood]||scales.romantic;
+      const root=s[Math.floor(rand(0,3))];
+      note(root/2,4.5,'sine',0.06,0);
+      note(root/2*1.5,4.5,'sine',0.04,0);
+      for(let i=0;i<6;i++)note(s[Math.floor(rand(0,s.length))],1.2,'triangle',0.045+(i%2?0:0.01),i*0.55);
+      timer=setTimeout(step,5000+rand(-300,300));
+    };
+    step();
+  }
+  function stopMusic(){started=false;if(timer)clearTimeout(timer);timer=null;}
+  function setMood(m){mood=m;}
+  function setMusicVolume(v){musicVol=v;if(musicGain)musicGain.gain.value=v*0.5;}
+  function setSfxVolume(v){sfxVol=v;if(sfxGain)sfxGain.gain.value=v;}
+  function sfx(kind){
+    init();resume();if(!ctx)return;
+    const t=ctx.currentTime;
+    switch(kind){
+      case 'click':{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='square';o.frequency.setValueAtTime(880,t);o.frequency.exponentialRampToValueAtTime(440,t+0.08);
+        g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.1);
+        o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+0.12);break;
+      }
+      case 'pickup':[880,1108,1318].forEach((f,i)=>note(f,0.18,'sine',0.18,i*0.06,sfxGain));break;
+      case 'success':[523,659,784,1046].forEach((f,i)=>note(f,0.4,'triangle',0.16,i*0.12,sfxGain));break;
+      case 'wrong':note(160,0.35,'sawtooth',0.12,0,sfxGain);note(140,0.35,'sawtooth',0.1,0.08,sfxGain);break;
+      case 'door':{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='sine';o.frequency.setValueAtTime(80,t);o.frequency.exponentialRampToValueAtTime(180,t+0.4);
+        g.gain.setValueAtTime(0.001,t);g.gain.linearRampToValueAtTime(0.08,t+0.1);g.gain.exponentialRampToValueAtTime(0.0001,t+0.55);
+        o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+0.6);break;
+      }
+      case 'heart':note(660,0.5,'sine',0.14,0,sfxGain);note(990,0.6,'sine',0.1,0.12,sfxGain);break;
+      case 'chapter':[392,523,659,784,1046].forEach((f,i)=>note(f,1.4,'sine',0.14,i*0.16,sfxGain));break;
+    }
+  }
+  return {init,resume,startMusic,stopMusic,setMood,setMusicVolume,setSfxVolume,sfx};
+})();
+
+/* ================= STATE ================= */
+const defaultState=()=>({
+  chapter:1,scene:'village',x:180,y:520,bond:0,hearts:3,
+  flags:{},inventory:[],quests:[],letters:[],memories:[],visited:[],
+  endingTier:null,customLetter:'',
+  settings:{music:55,sfx:70,speed:55}
+});
+let state=defaultState();
+
+const ITEMS={
+  rose:{ic:'🌹',nm:'Crimson Rose',ds:'From the first sunset. It still smells of that evening.'},
+  key_gold:{ic:'🗝️',nm:'Golden Key',ds:'Found in the library. It hums near old stone.'},
+  letter_nada:{ic:'💌',nm:"Nada's Letter",ds:'Her handwriting. Your name in the first line.'},
+  map_fragment:{ic:'🗺️',nm:'Torn Map',ds:'A fragment showing the Lost Kingdom of Elysia.'},
+  amulet:{ic:'📿',nm:'Amulet of Two Stars',ds:'Two stars entwined. Protects a bond.'},
+  lantern:{ic:'🏮',nm:'Ancient Lantern',ds:'Old Elysian make. Its flame does not waver.'},
+  artifact_1:{ic:'🏺',nm:'Elysian Vase',ds:'Painted with two figures holding hands.'},
+  artifact_2:{ic:'📜',nm:'Vow of Elysia',ds:'"Two hearts, one road, no parting."'},
+  artifact_3:{ic:'⚔️',nm:'Rose Guard Blade',ds:'A ceremonial blade. Never tasted blood.'},
+  roses_crown:{ic:'👑',nm:'Crown of Roses',ds:'Woven by Abdou. Worn at the final gate.'},
+  memory_1:{ic:'🕯️',nm:'Memory: First Light',ds:'The village at sunset, her laugh in the air.'},
+  memory_2:{ic:'🌙',nm:'Memory: Moonlit Hall',ds:'A dance neither admits to remembering.'},
+  memory_3:{ic:'⭐',nm:'Memory: Star Vow',ds:'Beneath the same stars, two promises.'}
+};
+const QUESTS={
+  q_meet:{name:'A First Encounter',desc:'Explore the village at sunset and meet Nada.'},
+  q_flower:{name:'The Rose Promise',desc:'Find a crimson rose by the old fountain.'},
+  q_castle:{name:'The Royal Secret',desc:'Enter the castle and uncover the hidden library.'},
+  q_riddle:{name:'Riddle of the Halls',desc:'Solve the library riddle to unlock the royal seal.'},
+  q_letter:{name:'A Letter from Nada',desc:"Discover Nada's hidden letter."},
+  q_map:{name:'The Lost Kingdom',desc:'Find the torn map and cross the wild forest.'},
+  q_forest:{name:'Through the Wilds',desc:'Reach the abandoned fortress beyond the woods.'},
+  q_amulet:{name:'The Amulet of Two Stars',desc:'Recover the amulet from the ruined chapel.'},
+  q_loyal:{name:'The Test of Loyalty',desc:'Help the people of the broken village.'},
+  q_rose_castle:{name:'The Castle of Roses',desc:'Find the castle where Nada waits.'},
+  q_final:{name:'A Love Beyond Time',desc:'Ascend to the balcony and speak your heart.'}
+};
+
+/* ================= SAVE ================= */
+function save(){
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({state,savedAt:Date.now()}));
+    toast('Journey saved.');AudioM.sfx('success');return true;}
+  catch(e){toast('Could not save.');return false;}
+}
+function load(){
+  try{const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;
+    const d=JSON.parse(raw);if(!d||!d.state)return false;
+    state=Object.assign(defaultState(),d.state);
+    state.settings=Object.assign(defaultState().settings,state.settings||{});
+    return true;}catch(e){return false;}
+}
+function hasSave(){try{return !!localStorage.getItem(SAVE_KEY);}catch(e){return false;}}
+
+/* ================= CANVAS ================= */
+const cv=$('cv'),ctx=cv.getContext('2d');
+let DPR=1,cw=W,ch=H,scale=1;
+function resize(){
+  const vw=window.innerWidth,vh=window.innerHeight;
+  // Mobile: allow portrait - letterbox the world
+  const s=Math.min(vw/W,vh/H);
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width=(W*s)+'px';cv.style.height=(H*s)+'px';
+  cv.width=Math.round(W*s*DPR);cv.height=Math.round(H*s*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cw=W*s;ch=H*s;scale=s;
+}
+window.addEventListener('resize',resize);
+window.addEventListener('orientationchange',()=>setTimeout(resize,120));
+resize();
+
+function toWorld(clientX,clientY){
+  const r=cv.getBoundingClientRect();
+  return {x:(clientX-r.left)/r.width*W,y:(clientY-r.top)/r.height*H};
+}
+
+/* ================= TOAST ================= */
+function toast(msg){
+  const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  $('toasts').appendChild(el);setTimeout(()=>el.remove(),3400);
+}
+
+/* ================= DIALOGUE ================= */
+const DLG=(()=>{
+  let queue=[],onDone=null,typing=null,activeChoice=false;
+  function open(script,done){
+    queue=script.slice();onDone=done||null;
+    $('dialogue').classList.add('show');
+    hideHUD();hideActionControls();
+    next();
+  }
+  function next(){
+    activeChoice=false;$('dlg-choices').innerHTML='';
+    if(queue.length===0){close();return;}
+    const node=queue.shift();
+    if(typeof node==='function'){node();next();return;}
+    if(node.choice){
+      $('dlg-who').textContent=node.who||'';
+      typeLine(node.line||'');
+      activeChoice=true;$('dlg-cont').style.display='none';
+      const wrap=$('dlg-choices');
+      node.choice.forEach(c=>{
+        const b=document.createElement('button');
+        b.className='choice';b.textContent=c.text;
+        b.onclick=(e)=>{
+          e.stopPropagation();
+          AudioM.sfx('click');
+          $('dlg-choices').innerHTML='';
+          if(c.effect)c.effect();
+          if(c.go){
+            if(Array.isArray(c.go))queue=c.go.concat(queue);
+            else if(typeof c.go==='object')queue=[c.go].concat(queue);
+            else if(typeof c.go==='function')queue=[c.go].concat(queue);
+          }
+          next();
+        };
+        wrap.appendChild(b);
+      });
+      return;
+    }
+    $('dlg-who').textContent=node.who||'';
+    $('dlg-cont').style.display='block';
+    typeLine(node.line||'',node.effect);
+  }
+  function typeLine(text,effect){
+    $('dlg-line').textContent='';
+    typing={full:text,i:0,effect};
+    const sp=Math.round(lerp(38,10,(state.settings.speed||55)/100));
+    clearInterval(typing.timer);
+    typing.timer=setInterval(()=>{
+      if(!typing)return clearInterval(typing.timer);
+      typing.i++;
+      $('dlg-line').textContent=typing.full.slice(0,typing.i);
+      if(typing.i>=typing.full.length)clearInterval(typing.timer);
+    },sp);
+  }
+  function advance(){
+    if(activeChoice)return;
+    if(typing&&typing.i<typing.full.length){$('dlg-line').textContent=typing.full;clearInterval(typing.timer);typing.i=typing.full.length;return;}
+    if(typing&&typing.effect){const e=typing.effect;typing.effect=null;e();}
+    next();
+  }
+  function close(){
+    $('dialogue').classList.remove('show');
+    $('dlg-line').textContent='';$('dlg-who').textContent='';$('dlg-choices').innerHTML='';
+    const cb=onDone;onDone=null;queue=[];
+    if(cb)cb();
+    if(current&&!document.querySelector('.overlay.show')){showHUD();showActionControls();}
+  }
+  $('dialogue').addEventListener('click',(e)=>{
+    if(e.target.closest('.choice'))return;
+    AudioM.sfx('click');advance();
+  });
+  return {open,advance,close};
+})();
+
+/* ================= SCENES ================= */
+const scenes={};
+
+function drawSkyGradient(c,stops){
+  const g=c.createLinearGradient(0,0,0,H);
+  stops.forEach(s=>g.addColorStop(s[0],s[1]));
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+}
+function drawMoon(c,x,y,r,glow=true){
+  if(glow){const g=c.createRadialGradient(x,y,r*0.2,x,y,r*4);
+    g.addColorStop(0,'rgba(255,245,210,.55)');g.addColorStop(.4,'rgba(255,245,210,.14)');
+    g.addColorStop(1,'rgba(255,245,210,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,r*4,0,7);c.fill();}
+  c.fillStyle='#fdf3c8';c.beginPath();c.arc(x,y,r,0,7);c.fill();
+  c.fillStyle='rgba(230,215,170,.5)';c.beginPath();c.arc(x-r*.3,y-r*.2,r*.18,0,7);c.fill();
+  c.beginPath();c.arc(x+r*.25,y+r*.15,r*.12,0,7);c.fill();
+}
+function drawStars(c,n,seed=1,time=0){
+  for(let i=0;i<n;i++){
+    const x=((i*97.13+seed*53)%W);const y=((i*61.7+seed*31)%(H*0.6));
+    const a=0.3+0.5*Math.abs(Math.sin(time*0.001+i));
+    c.fillStyle=`rgba(255,248,220,${a*0.8})`;c.fillRect(x,y,1.8,1.8);
+  }
+}
+function drawParticles(c,time,color='rgba(255,220,140,'){
+  for(let i=0;i<40;i++){
+    const t=time*0.0006;
+    const x=(i*137.3+Math.sin(t+i)*40+W)%W;const y=((i*89.7+t*22)%H);
+    const a=0.25+0.35*Math.abs(Math.sin(t*2+i));
+    c.fillStyle=color+a+')';c.beginPath();c.arc(x,y,1.6+Math.sin(i)*0.6,0,7);c.fill();
+  }
+}
+function drawHills(c,y,color,amp=40,seed=1){
+  c.fillStyle=color;c.beginPath();c.moveTo(0,y);
+  for(let x=0;x<=W;x+=8){const yy=y+Math.sin(x*0.006+seed)*amp+Math.sin(x*0.017+seed*2)*amp*0.4;c.lineTo(x,yy);}
+  c.lineTo(W,H);c.lineTo(0,H);c.closePath();c.fill();
+}
+function drawTree(c,x,y,s=1,col='#1a2418'){
+  c.fillStyle='#2a1a12';c.fillRect(x-6*s,y,12*s,50*s);
+  c.fillStyle=col;
+  for(let i=0;i<5;i++){const rr=(42-i*4)*s;c.beginPath();c.arc(x,y-i*18*s,rr,0,7);c.fill();}
+}
+function drawCastleSilhouette(c,x,y,s=1,color='#141018'){
+  c.fillStyle=color;
+  const bx=x,by=y,bw=150*s,bh=220*s;
+  c.fillRect(bx,by,bw,bh);
+  c.fillRect(bx-20*s,by-60*s,34*s,bh+60*s);
+  c.fillRect(bx+bw-14*s,by-60*s,34*s,bh+60*s);
+  c.fillRect(bx+bw*0.42,by-100*s,30*s,bh+100*s);
+  for(let i=0;i<6;i++)c.fillRect(bx+i*(bw/6),by-14*s,bw/12,14*s);
+  c.beginPath();c.moveTo(bx-20*s,by-60*s);c.lineTo(bx-3*s,by-92*s);c.lineTo(bx+14*s,by-60*s);c.closePath();c.fill();
+  c.beginPath();c.moveTo(bx+bw+20*s,by-60*s);c.lineTo(bx+bw+3*s,by-92*s);c.lineTo(bx+bw-14*s,by-60*s);c.closePath();c.fill();
+  c.beginPath();c.moveTo(bx+bw*0.42,by-100*s);c.lineTo(bx+bw*0.42+15*s,by-130*s);c.lineTo(bx+bw*0.42+30*s,by-100*s);c.closePath();c.fill();
+  c.fillStyle='rgba(255,190,90,.55)';
+  for(let i=0;i<4;i++)c.fillRect(bx+18*s+i*30*s,by+50*s,7*s,16*s);
+}
+function drawVillageHouses(c,y,seed=1){
+  for(let i=0;i<9;i++){
+    const x=(i*160+(i%2)*40-40+seed*7)%(W+200)-100;
+    const h=70+(i%3)*26,w=110;
+    c.fillStyle='#241820';c.fillRect(x,y-h,w,h);
+    c.fillStyle='#3a1f24';
+    c.beginPath();c.moveTo(x-12,y-h);c.lineTo(x+w/2,y-h-46);c.lineTo(x+w+12,y-h);c.closePath();c.fill();
+    c.fillStyle='rgba(255,200,110,.7)';
+    c.fillRect(x+w*0.2,y-h*0.55,14,16);c.fillRect(x+w*0.6,y-h*0.55,14,16);
+  }
+}
+function drawFountain(c,x,y,time){
+  c.fillStyle='#3a3a44';c.beginPath();c.ellipse(x,y,70,22,0,0,7);c.fill();
+  c.fillStyle='#2c2c34';c.beginPath();c.ellipse(x,y-6,52,16,0,0,7);c.fill();
+  c.fillStyle='#464650';c.fillRect(x-10,y-46,20,44);
+  c.fillStyle='rgba(120,180,220,.55)';
+  for(let i=0;i<8;i++){
+    const t=time*0.002+i;
+    const wx=x+Math.sin(t)*40*(0.4+i*0.08);
+    const wy=y-46-Math.abs(Math.sin(t*1.3))*20;
+    c.beginPath();c.arc(wx,wy,2.2,0,7);c.fill();
+  }
+  c.fillStyle='rgba(90,150,190,.4)';c.beginPath();c.ellipse(x,y+2,60,14,0,0,7);c.fill();
+}
+function drawAbdou(c,x,y,t,walking){
+  const bob=walking?Math.sin(t*0.018)*2.2:Math.sin(t*0.003)*1.2;y+=bob;
+  c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(x,y+4,16,5,0,0,7);c.fill();
+  const sw=walking?Math.sin(t*0.018)*6:0;
+  c.strokeStyle='#2a1f18';c.lineWidth=5;c.lineCap='round';
+  c.beginPath();c.moveTo(x-5,y-28);c.lineTo(x-6+sw,y-2);c.stroke();
+  c.beginPath();c.moveTo(x+5,y-28);c.lineTo(x+6-sw,y-2);c.stroke();
+  c.fillStyle='#3b2230';c.beginPath();c.moveTo(x-14,y-62);c.lineTo(x-18,y-8);c.lineTo(x+18,y-8);c.lineTo(x+14,y-62);c.closePath();c.fill();
+  c.fillStyle='#5a2a34';c.beginPath();c.moveTo(x-10,y-58);c.lineTo(x-12,y-28);c.lineTo(x+12,y-28);c.lineTo(x+10,y-58);c.closePath();c.fill();
+  c.strokeStyle='#c99a4a';c.lineWidth=2;c.beginPath();c.moveTo(x-10,y-58);c.lineTo(x+10,y-58);c.stroke();
+  c.fillStyle='#a87c22';c.fillRect(x-11,y-34,22,5);
+  c.fillStyle='#e2b48a';c.beginPath();c.arc(x,y-70,11,0,7);c.fill();
+  c.fillStyle='#2a1a10';c.beginPath();c.arc(x,y-74,11,Math.PI,0);c.fill();c.fillRect(x-11,y-76,22,5);
+  c.fillStyle='#1a1010';c.fillRect(x-5,y-71,2,2);c.fillRect(x+3,y-71,2,2);
+  if(state.inventory.includes('roses_crown')){
+    c.fillStyle='#c8384a';c.beginPath();c.arc(x-6,y-82,3,0,7);c.fill();
+    c.beginPath();c.arc(x+2,y-84,3,0,7);c.fill();c.beginPath();c.arc(x+8,y-81,3,0,7);c.fill();
+    c.fillStyle='#3f7d3a';c.fillRect(x-8,y-80,16,2);
+  }
+  c.strokeStyle='#b8b8c0';c.lineWidth=2;c.beginPath();c.moveTo(x+16,y-48);c.lineTo(x+24,y-20);c.stroke();
+  c.strokeStyle='#8a6a2a';c.lineWidth=3;c.beginPath();c.moveTo(x+15,y-52);c.lineTo(x+18,y-44);c.stroke();
+}
+function drawNada(c,x,y,t,walking){
+  const bob=walking?Math.sin(t*0.018+1)*2:Math.sin(t*0.0028+2)*1;y+=bob;
+  c.fillStyle='rgba(0,0,0,.32)';c.beginPath();c.ellipse(x,y+4,16,5,0,0,7);c.fill();
+  c.fillStyle='#5a2440';c.beginPath();c.moveTo(x-16,y-6);c.quadraticCurveTo(x-12,y-40,x-8,y-56);
+  c.lineTo(x+8,y-56);c.quadraticCurveTo(x+12,y-40,x+16,y-6);c.closePath();c.fill();
+  c.strokeStyle='#d4a54a';c.lineWidth=1.5;c.beginPath();c.moveTo(x-11,y-10);c.quadraticCurveTo(x,y-24,x+11,y-10);c.stroke();
+  c.fillStyle='#7a2e4a';c.beginPath();c.moveTo(x-8,y-56);c.lineTo(x-10,y-68);c.lineTo(x+10,y-68);c.lineTo(x+8,y-56);c.closePath();c.fill();
+  c.fillStyle='#e8bf98';c.fillRect(x-3,y-74,6,8);
+  c.fillStyle='#f0c9a2';c.beginPath();c.arc(x,y-84,11,0,7);c.fill();
+  c.fillStyle='#3a2218';c.beginPath();c.arc(x,y-88,11,Math.PI,0);c.fill();c.fillRect(x-12,y-88,4,34);c.fillRect(x+8,y-88,4,34);
+  c.fillStyle='#2a1810';c.fillRect(x-5,y-85,2,2);c.fillRect(x+3,y-85,2,2);
+  c.fillStyle='rgba(220,120,130,.5)';c.beginPath();c.arc(x-7,y-80,2.2,0,7);c.fill();c.beginPath();c.arc(x+7,y-80,2.2,0,7);c.fill();
+  c.fillStyle='#c8384a';c.beginPath();c.arc(x+9,y-92,4,0,7);c.fill();
+  c.fillStyle='#e06a7a';c.beginPath();c.arc(x+9,y-92,2,0,7);c.fill();
+}
+
+/* ---- scenes ---- */
+scenes.village={name:'Sundown Village',chapter:1,objective:'Meet Nada by the old fountain.',
+  visitedId:'village',bounds:{x1:60,x2:1220,y1:430,y2:660},spawn:{x:200,y:560},
+  hotspots:[
+    {id:'fountain',x:760,y:540,r:90,label:'Old Fountain',once:false,action:()=>{
+      if(!state.quests.find(q=>q.id==='q_flower'))return;
+      if(state.inventory.includes('rose')){toast('Nada is waiting.');return;}
+      findRose();
+    }},
+    {id:'nada',x:620,y:545,r:70,label:'Nada',once:false,action:()=>{
+      if(!state.inventory.includes('rose')){
+        DLG.open([
+          {who:'Nada',line:'Abdou! You came. The sunset is so beautiful tonight, is it not?'},
+          {who:'Abdou',line:'It is. Though my eyes keep finding a different light.'},
+          {who:'Nada',line:'A poet, now? Then bring me proof — a crimson rose from the old fountain.'},
+          {who:'Abdou',line:'Then a rose you shall have, my lady.'},
+          ()=>{addQuest('q_flower');}
+        ]);
+      }else{
+        DLG.open([
+          {who:'Abdou',line:'Nada. I found your rose.',effect:()=>{AudioM.sfx('heart');}},
+          {who:'Nada',line:'You did. And a thorn pricked you, I see.'},
+          {choice:[
+            {text:'"I would carry a thousand thorns for you."',effect:()=>{state.bond+=2;toast('Bond deepened.');addMemory('memory_1');},go:{who:'Nada',line:'(She laughs softly, and the village warms.)'}},
+            {text:'"It is nothing. What troubles the kingdom?"',effect:()=>{},go:{who:'Nada',line:'A shadow has come. My father hid a secret in the castle.'}},
+            {text:'"You are the only cure I need."',effect:()=>{state.bond+=1;AudioM.sfx('heart');},go:{who:'Nada',line:'Then keep me near, Abdou.'}}
+          ]},
+          {who:'Nada',line:'A royal secret sleeps in the castle library. My father left a letter for you.'},
+          {who:'Nada',line:'Find me there. The gate will open to one who carries the rose.'},
+          ()=>{completeQuest('q_flower');addQuest('q_castle');state.flags.canCastle=true;toast('The castle gate is open.');}
+        ],()=>{setScene('castle_gate');});
+      }
+    }},
+    {id:'well',x:320,y:530,r:60,label:'Old Well',once:false,action:()=>{
+      DLG.open([
+        {who:'Villager',line:'Careful — coins in the well are for wishes, not greed.'},
+        {choice:[
+          {text:'Make a wish for Nada.',effect:()=>{state.bond+=1;AudioM.sfx('heart');toast('A wish spoken softly.');addMemory('memory_1');}},
+          {text:'Take the coins.',effect:()=>{toast('A cold feeling settles. You put them back.');}}
+        ]}
+      ]);
+    }},
+    {id:'village_exit',x:1200,y:560,r:70,label:'Road to Castle',once:false,action:()=>{
+      if(!state.inventory.includes('rose')){toast('Find a rose for Nada first.');return;}
+      setScene('castle_gate');
+    }}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#1a1030'],[0.35,'#5a2440'],[0.62,'#c4602a'],[0.82,'#e8944a'],[1,'#f2b06a']]);
+    drawStars(c,40,3,t);drawMoon(c,1080,110,44);
+    drawHills(c,470,'#2a1a30',34,2);drawHills(c,510,'#1e1620',26,5);
+    drawCastleSilhouette(c,880,250,1.05,'#150f1e');
+    drawVillageHouses(c,560,1);
+    const g=c.createLinearGradient(0,540,0,H);g.addColorStop(0,'#2a1e1a');g.addColorStop(1,'#140e0e');
+    c.fillStyle=g;c.fillRect(0,540,W,H-540);
+    c.fillStyle='rgba(120,100,80,.18)';
+    for(let i=0;i<200;i++){const x=(i*97.3)%W,y=560+(i*53.7)%150;c.beginPath();c.ellipse(x,y,5,2,0,0,7);c.fill();}
+    drawTree(c,120,500,1.1,'#16201a');drawTree(c,60,520,0.9,'#101810');
+    drawFountain(c,760,540,t);
+    const lg=c.createRadialGradient(760,500,10,760,500,120);
+    lg.addColorStop(0,'rgba(255,200,120,.25)');lg.addColorStop(1,'rgba(255,200,120,0)');
+    c.fillStyle=lg;c.fillRect(620,380,280,280);
+    drawParticles(c,t,'rgba(255,210,140,');
+    drawNada(c,620,545,t,false);
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+scenes.castle_gate={name:'The Castle Gate',chapter:2,objective:'Enter the castle and find the library.',
+  visitedId:'castle',bounds:{x1:200,x2:1120,y1:470,y2:650},spawn:{x:300,y:600},
+  hotspots:[
+    {id:'gate',x:680,y:500,r:120,label:'Castle Gates',once:false,action:()=>{
+      if(!state.flags.canCastle){toast('The gates do not open for you.');return;}
+      AudioM.sfx('door');
+      DLG.open([
+        {who:'Guard',line:'Halt. By whose leave do you approach?'},
+        {who:'Abdou',line:'By a rose, and by the word of the Lady Nada.'},
+        {who:'Guard',line:'Then pass, Abdou. The library is behind the great doors.'},
+        ()=>{addQuest('q_riddle');}
+      ],()=>setScene('library'));
+    }},
+    {id:'beggar',x:900,y:600,r:65,label:'Weary Traveler',once:false,action:()=>{
+      if(state.flags.helpedBeggar){toast('The traveler nods.');return;}
+      DLG.open([
+        {who:'Traveler',line:'A coin, or a word of hope. The road has taken both.'},
+        {choice:[
+          {text:'Give your last coin.',effect:()=>{state.flags.helpedBeggar=true;state.bond+=1;AudioM.sfx('success');},go:{who:'Traveler',line:'Bless you. There is a hidden stair behind the library shelf.'}},
+          {text:'"I will remember you."',effect:()=>{state.flags.helpedBeggar=true;state.bond+=1;},go:{who:'Traveler',line:'Then hope is enough.'}},
+          {text:'Walk on.',effect:()=>{},go:{who:'Abdou',line:'(You feel the weight of the road.)'}}
+        ]}
+      ]);
+    }},
+    {id:'back_village',x:120,y:600,r:60,label:'Back to Village',once:false,action:()=>setScene('village')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#0a0e1e'],[0.5,'#1a1630'],[1,'#2a1e30']]);
+    drawStars(c,90,7,t);drawMoon(c,240,130,50);
+    drawCastleSilhouette(c,420,120,1.9,'#0e0a16');
+    c.fillStyle='#1a1018';c.beginPath();c.arc(680,470,120,Math.PI,0);c.fill();c.fillRect(560,470,240,180);
+    c.fillStyle='#3a2418';c.fillRect(600,480,160,180);
+    c.strokeStyle='#24160e';c.lineWidth=3;
+    for(let i=1;i<5;i++){c.beginPath();c.moveTo(600+i*32,480);c.lineTo(600+i*32,660);c.stroke();}
+    [560,800].forEach(x=>{
+      const fl=c.createRadialGradient(x,440,4,x,440,80);
+      fl.addColorStop(0,'rgba(255,170,60,.6)');fl.addColorStop(1,'rgba(255,170,60,0)');
+      c.fillStyle=fl;c.fillRect(x-80,360,160,160);
+      c.fillStyle='#ffb04a';c.beginPath();c.ellipse(x,440,6+Math.sin(t*0.01)*2,12,0,0,7);c.fill();
+    });
+    c.fillStyle='#0e0a10';c.fillRect(0,650,W,H-650);c.fillStyle='#1a1418';c.fillRect(0,640,W,20);
+    drawParticles(c,t,'rgba(255,190,120,');
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+scenes.library={name:'The Hidden Library',chapter:2,objective:'Solve the riddle on the pedestal.',
+  visitedId:'library',bounds:{x1:120,x2:1160,y1:420,y2:640},spawn:{x:300,y:600},
+  hotspots:[
+    {id:'bookshelf_l',x:260,y:470,r:80,label:'Ancient Shelf',once:true,action:()=>{
+      DLG.open([{who:'Abdou',line:'Dust and old ink. A tome on Elysia — pages torn.'}]);
+      addItem('map_fragment');completeQuest('q_map');addQuest('q_forest');
+    }},
+    {id:'pedestal',x:680,y:540,r:70,label:'Royal Pedestal',once:false,action:()=>{
+      if(state.flags.riddleSolved){toast('The pedestal rests quiet.');return;}
+      openRiddle();
+    }},
+    {id:'back_gate',x:120,y:610,r:60,label:'Leave',once:false,action:()=>setScene('castle_gate')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#1a120e'],[1,'#0a0806']]);
+    c.fillStyle='#241812';c.fillRect(0,80,W,520);
+    c.fillStyle='#1a100c';
+    for(let i=0;i<5;i++){const x=100+i*250;c.beginPath();c.arc(x,380,90,Math.PI,0);c.fill();c.fillRect(x-90,380,180,220);}
+    function shelf(x,y,w,h){
+      c.fillStyle='#3a2416';c.fillRect(x,y,w,h);
+      const cols=['#6a2a2a','#2a4a3a','#4a3a1a','#3a2a5a','#5a3a2a','#2a3a4a'];
+      for(let r=0;r<4;r++)for(let i=0;i<Math.floor(w/12);i++){
+        c.fillStyle=cols[(i+r)%cols.length];c.fillRect(x+4+i*12,y+6+r*(h/4),9,h/4-10);
+      }
+    }
+    shelf(180,300,180,240);shelf(940,300,180,240);
+    c.fillStyle='#2a1a12';c.fillRect(640,520,80,120);
+    c.fillStyle='#3a2418';c.fillRect(620,500,120,30);
+    const gl=c.createRadialGradient(680,490,4,680,490,90);
+    gl.addColorStop(0,'rgba(232,196,106,.5)');gl.addColorStop(1,'rgba(232,196,106,0)');
+    c.fillStyle=gl;c.fillRect(580,400,200,200);
+    c.fillStyle='#e8c46a';c.fillRect(660,476,40,28);
+    c.fillStyle='#fff3cf';c.fillRect(664,480,32,3);c.fillRect(664,487,32,2);c.fillRect(664,492,20,2);
+    for(let i=0;i<6;i++){
+      const x=220+i*160;
+      c.fillStyle='#d8c8a0';c.fillRect(x,500,6,20);
+      const fl=c.createRadialGradient(x+3,495,1,x+3,495,40);
+      fl.addColorStop(0,'rgba(255,190,90,.6)');fl.addColorStop(1,'rgba(255,190,90,0)');
+      c.fillStyle=fl;c.fillRect(x-37,458,80,80);
+      c.fillStyle='#ffcf6a';c.beginPath();c.ellipse(x+3,494,3+Math.sin(t*0.02+i)*1,6,0,0,7);c.fill();
+    }
+    c.fillStyle='#140e0a';c.fillRect(0,640,W,80);
+    drawParticles(c,t,'rgba(255,200,120,');
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+function openRiddle(){
+  const riddles=[
+    {q:'I have cities but no houses, forests but no trees, water but no fish. What am I?',opts:['A map','A dream','A painting'],correct:0},
+    {q:'Two hearts, one road, no parting — in the old tongue of Elysia, what is this?',opts:['A vow','A war','A gate'],correct:0}
+  ];
+  let idx=0;
+  function ask(){
+    if(idx>=riddles.length){solve();return;}
+    const r=riddles[idx];
+    const choices=r.opts.map((o,i)=>({text:o,effect:()=>{
+      if(i===r.correct){AudioM.sfx('success');idx++;toast('Correct. The stone hums.');ask();}
+      else{AudioM.sfx('wrong');toast('The stone stays cold. Try again.');ask();}
+    }}));
+    DLG.open([{who:'The Pedestal',line:r.q},{who:'Abdou',choice:choices}]);
+  }
+  function solve(){
+    state.flags.riddleSolved=true;
+    addItem('key_gold');addItem('letter_nada');addItem('amulet');
+    completeQuest('q_riddle');completeQuest('q_letter');addMemory('memory_2');state.bond+=1;
+    AudioM.sfx('success');
+    DLG.open([
+      {who:'Abdou',line:'(The pedestal opens. A key, an amulet, and a letter in her hand.)'},
+      {who:"Nada's Letter",line:'"My Abdou — follow the torn map to Elysia. There is a fortress, a chapel, and a road only we can walk. I wait at the Castle of Roses. Do not lose the amulet. — N."'},
+      {who:'Abdou',line:'Then I will walk every road, Nada.'}
+    ],()=>{addQuest('q_rose_castle');setScene('forest');});
+  }
+  ask();
+}
+
+scenes.forest={name:'The Wild Forest',chapter:3,objective:'Cross the forest to the abandoned fortress.',
+  visitedId:'forest',bounds:{x1:80,x2:1200,y1:450,y2:660},spawn:{x:160,y:600},
+  hotspots:[
+    {id:'chapel',x:640,y:520,r:80,label:'Ruined Chapel',once:true,action:()=>{
+      DLG.open([
+        {who:'Abdou',line:'A chapel, half-swallowed by roots. The amulet grows warm.'},
+        {who:'Voice',line:'Only those who carry two stars may pass. Step forward.'},
+        ()=>{addItem('artifact_1');addItem('artifact_2');addItem('lantern');completeQuest('q_amulet');state.flags.forestPassed=true;AudioM.sfx('success');toast('The roots part.');}
+      ]);
+    }},
+    {id:'bridge',x:1050,y:520,r:80,label:'Rope Bridge',once:false,action:()=>{
+      if(!state.flags.forestPassed){toast('The forest will not let you pass yet.');return;}
+      setScene('fortress');
+    }},
+    {id:'deer',x:360,y:580,r:65,label:'White Stag',once:true,action:()=>{
+      DLG.open([
+        {who:'Abdou',line:'A white stag watches me. It does not fear.'},
+        {choice:[
+          {text:'Bow to it.',effect:()=>{state.bond+=1;addMemory('memory_3');AudioM.sfx('heart');toast('It bows back.');}},
+          {text:'Draw your sword.',effect:()=>{toast('The stag vanishes. You feel colder.');}},
+          {text:'Follow it.',effect:()=>{addMemory('memory_3');toast('It leads you a little way.');}}
+        ]}
+      ]);
+    }},
+    {id:'back_lib',x:80,y:610,r:60,label:'Back to Castle',once:false,action:()=>setScene('library')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#0a1420'],[0.5,'#163028'],[1,'#0a1410']]);
+    drawStars(c,30,9,t);drawMoon(c,1000,120,40);
+    for(let i=0;i<14;i++)drawTree(c,i*100+20,380+((i*37)%60),0.8+(i%3)*0.15,'#0e1a14');
+    const fg=c.createLinearGradient(0,380,0,560);
+    fg.addColorStop(0,'rgba(120,160,140,0)');fg.addColorStop(1,'rgba(120,160,140,.18)');
+    c.fillStyle=fg;c.fillRect(0,380,W,200);
+    c.fillStyle='#0e1a14';c.fillRect(0,540,W,H-540);
+    c.fillStyle='#14201a';
+    for(let i=0;i<50;i++)c.fillRect((i*137)%W,560+(i*41)%120,6,3);
+    c.fillStyle='#1a2018';c.fillRect(600,430,80,110);
+    c.beginPath();c.moveTo(590,430);c.lineTo(640,380);c.lineTo(690,430);c.closePath();c.fill();
+    if(!state.flags.forestPassed){
+      c.strokeStyle='#2a1e14';c.lineWidth=6;
+      c.beginPath();c.moveTo(700,540);c.quadraticCurveTo(660,400,720,360);c.stroke();
+      c.beginPath();c.moveTo(580,540);c.quadraticCurveTo(620,400,560,360);c.stroke();
+    }
+    c.fillStyle='#0a1420';c.fillRect(960,540,200,180);
+    c.strokeStyle='#3a2a18';c.lineWidth=4;
+    for(let i=0;i<6;i++){c.beginPath();c.moveTo(1000+i*20,540);c.lineTo(1000+i*20,700);c.stroke();}
+    drawParticles(c,t,'rgba(160,200,180,');
+    if(!state.flags['used_deer']){
+      const sx=360,sy=580;
+      c.fillStyle='#e8e0d0';c.beginPath();c.ellipse(sx,sy-14,16,9,0,0,7);c.fill();
+      c.fillRect(sx-6,sy-8,3,10);c.fillRect(sx+3,sy-8,3,10);
+      c.beginPath();c.arc(sx-14,sy-22,6,0,7);c.fill();
+      c.strokeStyle='#d8d0c0';c.lineWidth=1.5;
+      c.beginPath();c.moveTo(sx-16,sy-28);c.lineTo(sx-20,sy-36);c.stroke();
+      c.beginPath();c.moveTo(sx-12,sy-28);c.lineTo(sx-10,sy-36);c.stroke();
+    }
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+scenes.fortress={name:'The Abandoned Fortress',chapter:3,objective:'Search the fortress for the hidden road.',
+  visitedId:'fortress',bounds:{x1:150,x2:1120,y1:460,y2:650},spawn:{x:260,y:600},
+  hotspots:[
+    {id:'banner',x:760,y:470,r:70,label:'Fallen Banner',once:true,action:()=>{addItem('artifact_3');toast('Rose Guard Blade recovered.');AudioM.sfx('pickup');}},
+    {id:'loyal',x:500,y:560,r:70,label:'Stranded Villagers',once:false,action:()=>{
+      if(state.flags.helpedVillagers){toast('The villagers wave.');return;}
+      DLG.open([
+        {who:'Villager',line:'The fortress fell, and our well is sealed. With a lantern we could reach the spring.'},
+        {choice:[
+          {text:'Give them your lantern.',effect:()=>{
+            state.flags.helpedVillagers=true;state.flags.helpedBeggar=true;state.bond+=2;
+            removeItem('lantern');toast('A new path opens.');AudioM.sfx('success');addQuest('q_loyal');
+          },go:[{who:'Villager',line:'Take this charm, friend. May your road be short.'},
+               {who:'Abdou',line:'(A path of light opens beyond the wall.)'}]},
+          {text:'Keep the lantern.',effect:()=>{toast('The road stays dark.');},go:{who:'Villager',line:'We understand.'}}
+        ]}
+      ]);
+    }},
+    {id:'road',x:1120,y:570,r:70,label:'Hidden Road',once:false,action:()=>{
+      if(!state.flags.helpedVillagers&&!state.flags.helpedBeggar){toast('A hidden path requires kindness.');return;}
+      setScene('elysia');
+    }},
+    {id:'back_forest',x:150,y:610,r:60,label:'Back to Forest',once:false,action:()=>setScene('forest')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#0a0e1a'],[0.6,'#1a1424'],[1,'#241a20']]);
+    drawStars(c,60,11,t);drawMoon(c,340,140,46);
+    c.fillStyle='#1a1618';c.fillRect(300,320,600,240);
+    c.fillRect(280,260,70,300);c.fillRect(850,290,70,270);
+    c.fillStyle='#0e0c10';
+    c.fillRect(330,380,40,60);c.fillRect(600,340,50,80);c.fillRect(800,420,40,50);
+    const lg=c.createLinearGradient(340,140,600,600);
+    lg.addColorStop(0,'rgba(200,210,255,.10)');lg.addColorStop(1,'rgba(200,210,255,0)');
+    c.fillStyle=lg;c.beginPath();c.moveTo(300,140);c.lineTo(380,140);c.lineTo(720,600);c.lineTo(560,600);c.closePath();c.fill();
+    c.fillStyle='#141014';c.fillRect(0,560,W,H-560);
+    c.fillStyle='#241c20';
+    for(let i=0;i<30;i++)c.fillRect((i*137)%W,580+(i*53)%100,12+(i%3)*5,6);
+    drawParticles(c,t,'rgba(180,190,220,');
+    if(!state.flags.helpedVillagers){
+      [460,500,540].forEach(x=>{
+        c.fillStyle='rgba(20,16,20,.9)';c.beginPath();c.arc(x,540,8,0,7);c.fill();c.fillRect(x-6,548,12,26);
+      });
+    }
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+scenes.elysia={name:'The Lost Kingdom of Elysia',chapter:4,objective:'Walk the ruined halls. The final gate is near.',
+  visitedId:'elysia',bounds:{x1:100,x2:1180,y1:450,y2:650},spawn:{x:180,y:600},
+  hotspots:[
+    {id:'memory_stone',x:640,y:520,r:80,label:'Memory Stone',once:true,action:()=>{
+      DLG.open([
+        {who:'Elysia',line:'(The stone remembers. Nada at the fountain, then under stars, then a gate that closes.)'},
+        {who:'Elysia',line:'Only a faithful heart may pass the final gate. Have you been faithful?'},
+        {choice:[
+          {text:'"I have thought of no one else."',effect:()=>{state.bond+=2;AudioM.sfx('heart');addMemory('memory_2');},go:{who:'Elysia',line:'Then the gate shall know your name.'}},
+          {text:'"I have done what I could."',effect:()=>{state.bond+=1;},go:{who:'Elysia',line:'That is enough for most hearts.'}},
+          {text:'"I have been afraid."',effect:()=>{},go:{who:'Elysia',line:'Fear is not the opposite of love.'}}
+        ]},
+        ()=>{state.flags.elysiaPassed=true;toast('The final gate opens.');}
+      ]);
+    }},
+    {id:'gate',x:1140,y:560,r:70,label:'The Final Gate',once:false,action:()=>{
+      if(!state.flags.elysiaPassed){toast('The gate is sealed.');return;}
+      setScene('rose_castle');
+    }},
+    {id:'back_fort',x:100,y:610,r:60,label:'Back to Fortress',once:false,action:()=>setScene('fortress')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#0a0a1a'],[0.5,'#1a1030'],[1,'#2a1a28']]);
+    drawStars(c,120,13,t);drawMoon(c,640,90,60);
+    c.fillStyle='#1e1a24';
+    for(let i=0;i<6;i++){
+      const x=140+i*180;c.fillRect(x,400,26,200);c.fillRect(x-8,394,42,10);
+      if(i%2)c.fillRect(x-14,370,54,10);
+    }
+    c.fillStyle='#241e2a';c.beginPath();c.arc(640,340,120,Math.PI,0);c.fill();c.fillRect(520,340,240,60);
+    c.fillStyle='#2a2434';c.fillRect(620,490,50,70);
+    const gl=c.createRadialGradient(645,480,4,645,480,90);
+    gl.addColorStop(0,'rgba(180,160,255,.4)');gl.addColorStop(1,'rgba(180,160,255,0)');
+    c.fillStyle=gl;c.fillRect(555,390,180,180);
+    c.fillStyle='#141018';c.fillRect(0,560,W,H-560);
+    for(let i=0;i<20;i++){const x=(i*97)%W,y=570+(i*37)%80;c.fillStyle='#7a1a2a';c.beginPath();c.arc(x,y,3,0,7);c.fill();}
+    drawParticles(c,t,'rgba(200,180,255,');
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+scenes.rose_castle={name:'The Castle of Roses',chapter:5,objective:'Ascend to the balcony where Nada waits.',
+  visitedId:'rose_castle',bounds:{x1:120,x2:1160,y1:440,y2:650},spawn:{x:240,y:610},
+  hotspots:[
+    {id:'roses',x:520,y:540,r:80,label:'Rose Garden',once:true,action:()=>{
+      addItem('roses_crown');
+      DLG.open([{who:'Abdou',line:'I weave a crown of roses. If I see her again, let it be like this.'}]);
+      AudioM.sfx('heart');
+    }},
+    {id:'balcony',x:1000,y:470,r:90,label:'Balcony Stairs',once:false,action:()=>{
+      if(!state.inventory.includes('roses_crown')){toast('Weave the crown of roses first.');return;}
+      AudioM.sfx('door');setScene('balcony');
+    }},
+    {id:'back_elysia',x:120,y:610,r:60,label:'Back to Elysia',once:false,action:()=>setScene('elysia')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#0e0a1e'],[0.5,'#3a1a30'],[1,'#5a2a30']]);
+    drawStars(c,80,17,t);drawMoon(c,900,110,54);
+    c.fillStyle='#1a1018';c.fillRect(200,200,880,400);
+    [200,500,860,1060].forEach(x=>{
+      c.fillStyle='#140c14';c.fillRect(x-30,160,60,440);
+      c.beginPath();c.moveTo(x-40,160);c.lineTo(x,80);c.lineTo(x+40,160);c.closePath();c.fill();
+      c.fillStyle='rgba(255,190,110,.6)';for(let w=0;w<3;w++)c.fillRect(x-12,220+w*70,24,34);
+    });
+    c.fillStyle='#241018';c.beginPath();c.arc(640,300,120,Math.PI,0);c.fill();c.fillRect(520,300,240,300);
+    c.strokeStyle='#3a2018';c.lineWidth=4;
+    for(let i=0;i<5;i++){c.beginPath();c.moveTo(520+i*50,600);c.quadraticCurveTo(540+i*40,400,520+i*50,300);c.stroke();}
+    for(let i=0;i<40;i++){const x=520+(i*13)%240,y=300+(i*29)%260;c.fillStyle=i%2?'#a02a3a':'#c8384a';c.beginPath();c.arc(x,y,3.5,0,7);c.fill();}
+    c.fillStyle='#14101a';c.fillRect(0,600,W,H-600);
+    for(let i=0;i<12;i++){
+      const x=100+i*100,y=600;c.fillStyle='#1a2a18';c.beginPath();c.arc(x,y,26,Math.PI,0);c.fill();
+      for(let r=0;r<4;r++){c.fillStyle='#a02a3a';c.beginPath();c.arc(x-16+r*11,y-14+(r%2)*6,4,0,7);c.fill();}
+    }
+    drawParticles(c,t,'rgba(255,190,180,');
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+scenes.balcony={name:'The Balcony',chapter:5,objective:'Speak to Nada.',
+  visitedId:'balcony',bounds:{x1:400,x2:900,y1:480,y2:640},spawn:{x:520,y:600},
+  hotspots:[
+    {id:'nada_balcony',x:740,y:540,r:90,label:'Nada',once:false,action:()=>{
+      if(state.flags.reunited){toast('You stand together, watching the stars.');return;}
+      AudioM.setMood('romantic');AudioM.sfx('heart');state.flags.reunited=true;
+      completeQuest('q_rose_castle');state.bond+=state.flags.helpedVillagers?1:0;
+      DLG.open([
+        {who:'Nada',line:'Abdou? ... It is really you.'},
+        {who:'Abdou',line:'I crossed forgotten lands and ancient kingdoms. And here you are.'},
+        {who:'Nada',line:'I was afraid the road would be too long.'},
+        {choice:[
+          {text:'"I would have walked a thousand more."',effect:()=>{state.bond+=3;AudioM.sfx('heart');},go:{who:'Nada',line:'(She takes your hand, and the kingdom leans closer.)'}},
+          {text:'"I almost did. But I could not."',effect:()=>{state.bond+=2;},go:{who:'Nada',line:'Then we were both almost lost. And both found.'}},
+          {text:'"You are the reason I kept walking."',effect:()=>{state.bond+=2;AudioM.sfx('heart');},go:{who:'Nada',line:'Then let us never walk alone again.'}}
+        ]},
+        {who:'Nada',line:'There is a balcony above the roses. The kingdom looks like a field of stars. Will you come?'},
+        {who:'Abdou',line:'To the end of the world, and a little further.'},
+        ()=>{addQuest('q_final');toast('Ascend to the final balcony.');}
+      ],()=>{setTimeout(showFinale,900);});
+    }},
+    {id:'back_rose',x:400,y:600,r:60,label:'Back to Garden',once:false,action:()=>setScene('rose_castle')}
+  ],
+  draw(c,t,player){
+    drawSkyGradient(c,[[0,'#060a18'],[0.5,'#1a1838'],[1,'#3a2438']]);
+    drawStars(c,160,19,t);drawMoon(c,640,100,70);
+    c.fillStyle='#0a0e1a';c.fillRect(0,500,W,220);
+    for(let i=0;i<80;i++){
+      const x=(i*61.7)%W,y=520+(i*37.3)%160;
+      const a=0.4+0.4*Math.abs(Math.sin(t*0.003+i));
+      c.fillStyle=`rgba(255,190,100,${a})`;c.beginPath();c.arc(x,y,1.8,0,7);c.fill();
+    }
+    c.fillStyle='#0e0a14';c.fillRect(0,420,320,300);c.fillRect(960,420,320,300);
+    for(let i=0;i<6;i++){c.fillRect(0+i*54,390,34,40);c.fillRect(960+i*54,390,34,40);}
+    c.strokeStyle='#3a2a1a';c.lineWidth=6;
+    c.beginPath();c.moveTo(320,560);c.lineTo(960,560);c.stroke();
+    for(let i=0;i<12;i++){c.beginPath();c.moveTo(340+i*54,560);c.lineTo(340+i*54,640);c.stroke();}
+    const lg=c.createRadialGradient(640,440,20,640,440,260);
+    lg.addColorStop(0,'rgba(255,200,120,.20)');lg.addColorStop(1,'rgba(255,200,120,0)');
+    c.fillStyle=lg;c.fillRect(300,200,680,400);
+    drawParticles(c,t,'rgba(255,220,160,');
+    drawNada(c,740,540,t,false);
+    drawAbdou(c,player.x,player.y,t,player.walking);
+  }
+};
+
+/* ================= FINALE ================= */
+function showFinale(){
+  state.chapter=6;AudioM.setMood('victory');AudioM.sfx('chapter');
+  let tier='bittersweet';
+  if(state.bond>=12)tier='radiant';else if(state.bond>=6)tier='tender';
+  state.endingTier=tier;
+  const tierText={radiant:'A Love Beyond Time — Radiant',tender:'A Love Beyond Time — Tender',bittersweet:'A Love Beyond Time — Bittersweet'}[tier];
+  const endingDefault=`To my beloved Nada,
+
+I crossed forgotten lands, explored ancient kingdoms, and followed every clue to find you. But the greatest adventure was never about the journey or the destination. It was about the person who gave my journey meaning.
+
+You are my favorite chapter, my greatest treasure, and the story I want to keep writing forever.
+
+Forever your Abdou. ❤️`;
+  const extra={
+    radiant:'\n\nThe kingdom lit its lanterns that night, and every star leaned closer. The bond we carried across the wilds became a light of its own — and it has never gone out.',
+    tender:'\n\nWe stood at the balcony and did not need to speak. Some bonds are quiet, and they last the longest. I will keep choosing you, Nada, in every life the stars allow.',
+    bittersweet:'\n\nWe found each other, though the road took much. Perhaps love is not the absence of loss, but the courage to hold on anyway. I am holding on. Always.'
+  }[tier];
+  state.customLetter=state.customLetter||(endingDefault+extra);
+  $('ending-note').textContent=tierText;
+  const letter=$('ending-letter');
+  letter.innerHTML=`<h2>🌹 The Kingdom of Eternal Love 🌹</h2>
+    <div style="white-space:pre-wrap;">${esc(state.customLetter)}</div>
+    <div class="sign">— Abdou &amp; Nada, beyond time</div>`;
+  $('ending').classList.add('show');
+  hideHUD();hideActionControls();AudioM.stopMusic();
+  $('btn-end-edit').onclick=()=>{
+    AudioM.sfx('click');
+    letter.innerHTML=`<h2>Write Your Own Words</h2>
+      <div class="warn" style="color:#7a4a20;">Your real memories belong here.</div>
+      <textarea id="letter-edit"></textarea>
+      <div style="text-align:right;margin-top:10px;">
+        <button class="btn small" id="letter-save" style="border-color:#7a4a20;color:#5a3a18;background:rgba(120,80,30,.15);">Save Letter</button>
+      </div>`;
+    $('letter-edit').value=state.customLetter;
+    $('letter-save').onclick=()=>{
+      state.customLetter=$('letter-edit').value;save();AudioM.sfx('success');
+      toast('The letter is yours forever.');showFinale();
+    };
+  };
+  $('btn-end-title').onclick=()=>{$('ending').classList.remove('show');returnToTitle();};
+}
+function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+/* ================= RUNTIME ================= */
+let current=null;
+let player={x:200,y:560,walking:false,targetX:null,targetY:null};
+let sceneTransition=0,transitionDir=0,pendingScene=null;
+
+function setScene(id){
+  if(!scenes[id])return;
+  pendingScene=id;transitionDir=1;AudioM.sfx('click');
+}
+function commitScene(id){
+  current=scenes[id];state.scene=id;
+  const sp=current.spawn||{x:300,y:600};
+  player.x=sp.x;player.y=sp.y;player.targetX=null;player.targetY=null;player.walking=false;
+  if(current.visitedId&&!state.visited.includes(current.visitedId))state.visited.push(current.visitedId);
+  updateHUD();
+  if(current.chapter&&current.chapter>state.chapter){
+    state.chapter=current.chapter;
+    toast('Chapter '+roman(current.chapter)+' — '+current.name);
+    AudioM.sfx('chapter');
+    AudioM.setMood(current.chapter>=5?'romantic':(current.chapter===3?'mystery':'romantic'));
+  }
+  showHUD();showActionControls();
+}
+function roman(n){return ['','I','II','III','IV','V','VI'][n]||n;}
+
+function addQuest(id){
+  if(state.quests.find(q=>q.id===id))return;
+  const d=QUESTS[id];if(!d)return;
+  state.quests.push({id,name:d.name,desc:d.desc,done:false});
+  toast('New quest: '+d.name);updateHUD();
+}
+function completeQuest(id){
+  const q=state.quests.find(q=>q.id===id);
+  if(q&&!q.done){q.done=true;AudioM.sfx('success');toast('Quest complete: '+q.name);updateHUD();}
+}
+function addItem(id){
+  if(!ITEMS[id]||state.inventory.includes(id))return;
+  state.inventory.push(id);toast('Received: '+ITEMS[id].nm);AudioM.sfx('pickup');updateHUD();
+}
+function removeItem(id){
+  const i=state.inventory.indexOf(id);if(i>=0)state.inventory.splice(i,1);updateHUD();
+}
+function addMemory(id){
+  if(!ITEMS[id]||state.memories.includes(id))return;
+  state.memories.push(id);
+  if(!state.inventory.includes(id))state.inventory.push(id);
+  toast('A memory is kept.');AudioM.sfx('heart');updateHUD();
+}
+function findRose(){
+  DLG.open([
+    {who:'Abdou',line:'The fountain garden is tangled with vines. Where would a crimson rose hide?'},
+    {choice:[
+      {text:'Search beside the fountain stones.',effect:()=>{AudioM.sfx('success');addItem('rose');toast('A crimson rose!');}},
+      {text:'Search under the old oak.',effect:()=>{AudioM.sfx('wrong');toast('Only thorns and shadows.');}},
+      {text:'Search the well cover.',effect:()=>{AudioM.sfx('wrong');toast('Nothing but cold stone.');}}
+    ]},
+    {who:'Abdou',line:'(The rose is warm in your hand.)'}
+  ]);
+}
+
+/* ================= HUD ================= */
+function updateHUD(){
+  if(!current)return;
+  $('hud-chapter').textContent='Chapter '+roman(state.chapter)+' — '+(current.name||'');
+  const active=state.quests.find(q=>!q.done);
+  $('hud-objective').innerHTML=active?('<b>Objective:</b> '+active.desc):(current.objective?('<b>Objective:</b> '+current.objective):'');
+  $('hud-bond').textContent=state.bond;
+  $('hearts').textContent='❤'.repeat(Math.max(0,state.hearts))+'♡'.repeat(Math.max(0,3-state.hearts));
+}
+function showHUD(){$('hud').classList.add('show');}
+function hideHUD(){$('hud').classList.remove('show');}
+function showActionControls(){$('stick').classList.add('show');$('action').classList.add('show');}
+function hideActionControls(){$('stick').classList.remove('show');$('action').classList.remove('show');}
+
+/* ================= VIRTUAL STICK ================= */
+const stickEl=$('stick'),knob=$('stick').querySelector('.knob');
+let stickActive=false,stickId=null,stickCx=0,stickCy=0,stickDx=0,stickDy=0;
+const STICK_MAX=40;
+
+stickEl.addEventListener('touchstart',onStickStart,{passive:false});
+stickEl.addEventListener('touchmove',onStickMove,{passive:false});
+stickEl.addEventListener('touchend',onStickEnd,{passive:false});
+stickEl.addEventListener('touchcancel',onStickEnd,{passive:false});
+// pointer fallback for desktop mouse
+stickEl.addEventListener('mousedown',e=>{e.preventDefault();onStickStart(e);});
+window.addEventListener('mousemove',e=>{if(stickActive)onStickMove(e);});
+window.addEventListener('mouseup',e=>{if(stickActive)onStickEnd(e);});
+
+function getTouches(e){return e.changedTouches?e.changedTouches:[e];}
+function onStickStart(e){
+  e.preventDefault();
+  AudioM.init();AudioM.resume();
+  const t=getTouches(e)[0];
+  const r=stickEl.getBoundingClientRect();
+  stickActive=true;stickId=t.identifier;
+  stickCx=r.left+r.width/2;stickCy=r.top+r.height/2;
+  stickDx=0;stickDy=0;
+  updateKnob();
+}
+function onStickMove(e){
+  if(!stickActive)return;
+  e.preventDefault();
+  const t=getTouches(e)[0];
+  if(stickId!=null&&t.identifier!==stickId)return;
+  let dx=t.clientX-stickCx,dy=t.clientY-stickCy;
+  const d=Math.hypot(dx,dy);
+  if(d>STICK_MAX){dx=dx/d*STICK_MAX;dy=dy/d*STICK_MAX;}
+  stickDx=dx/STICK_MAX;stickDy=dy/STICK_MAX;
+  updateKnob();
+}
+function onStickEnd(e){
+  if(!stickActive)return;
+  e.preventDefault();
+  stickActive=false;stickId=null;
+  // ease back
+  const iv=setInterval(()=>{
+    stickDx*=0.7;stickDy*=0.7;
+    updateKnob();
+    if(Math.abs(stickDx)<0.02&&Math.abs(stickDy)<0.02){stickDx=0;stickDy=0;updateKnob();clearInterval(iv);}
+  },16);
+}
+function updateKnob(){
+  knob.style.transform=`translate(calc(-50% + ${stickDx*STICK_MAX}px), calc(-50% + ${stickDy*STICK_MAX}px))`;
+}
+
+/* ================= ACTION BUTTON ================= */
+$('action').addEventListener('click',(e)=>{
+  e.preventDefault();
+  AudioM.init();AudioM.resume();
+  tryInteract();
+});
+
+/* ================= TAP-TO-WALK ================= */
+cv.addEventListener('pointerdown',(e)=>{
+  if(!current)return;
+  if($('dialogue').classList.contains('show'))return;
+  if(document.querySelector('.overlay.show'))return;
+  AudioM.init();AudioM.resume();
+  const p=toWorld(e.clientX,e.clientY);
+  const hot=nearestHotspot(p.x,p.y,90);
+  if(hot){tryInteract(hot);return;}
+  player.targetX=clamp(p.x,current.bounds.x1,current.bounds.x2);
+  player.targetY=clamp(p.y,current.bounds.y1,current.bounds.y2);
+});
+
+function nearestHotspot(x,y,r){
+  if(!current)return null;
+  let best=null,bd=r;
+  for(const h of current.hotspots){
+    const d=dist(x,y,h.x,h.y)-(h.r||40);
+    if(d<bd){bd=d;best=h;}
+  }
+  return best;
+}
+function tryInteract(explicit){
+  if(!current)return;
+  const h=explicit||nearestHotspot(player.x,player.y-30,120);
+  if(!h){toast('Nothing to interact with here.');return;}
+  if(h.once&&state.flags['used_'+h.id])return;
+  if(h.once)state.flags['used_'+h.id]=true;
+  AudioM.sfx('click');h.action();updateHUD();
+}
+
+/* ================= HUD BUTTONS ================= */
+$('btn-journal').onclick=()=>openOverlay('journal');
+$('btn-bag').onclick=()=>openOverlay('bag');
+$('btn-map').onclick=()=>openOverlay('map');
+$('btn-pause').onclick=()=>openOverlay('pause');
+
+function openOverlay(id){
+  AudioM.sfx('click');
+  if(id==='journal')renderJournal();
+  if(id==='bag')renderBag();
+  if(id==='map')renderMap();
+  $(id).classList.add('show');
+  hideHUD();hideActionControls();
+}
+function closeOverlay(id){
+  $(id).classList.remove('show');
+  if(id!=='title'&&id!=='ending'&&current){showHUD();showActionControls();}
+}
+document.querySelectorAll('.close-x').forEach(el=>{
+  el.onclick=()=>{AudioM.sfx('click');closeOverlay(el.dataset.close);};
+});
+
+function renderJournal(){
+  const g=$('journal-grid');g.innerHTML='';
+  if(state.quests.length===0){g.innerHTML='<div class="empty-note">No quests yet. Explore and speak to people.</div>';}
+  state.quests.forEach(q=>{
+    const d=document.createElement('div');
+    d.className='item'+(q.done?' done':'');
+    d.innerHTML=`<div class="ic">${q.done?'✔':'✦'}</div><div class="nm">${q.name}</div><div class="ds">${q.desc}</div>`;
+    g.appendChild(d);
+  });
+  if(state.memories.length){
+    const m=document.createElement('div');
+    m.style.gridColumn='1/-1';m.style.marginTop='10px';
+    m.innerHTML='<div style="color:#e8c46a;letter-spacing:2px;font-size:12px;text-transform:uppercase;margin-bottom:8px;">Memories Kept</div>';
+    state.memories.forEach(id=>{
+      const it=ITEMS[id];if(!it)return;
+      const d=document.createElement('div');d.className='item';
+      d.innerHTML=`<div class="ic">${it.ic}</div><div class="nm">${it.nm}</div><div class="ds">${it.ds}</div>`;
+      m.appendChild(d);
+    });
+    g.appendChild(m);
+  }
+}
+function renderBag(){
+  const g=$('bag-grid');g.innerHTML='';
+  if(state.inventory.length===0){g.innerHTML='<div class="empty-note">Your satchel is empty.</div>';return;}
+  state.inventory.forEach(id=>{
+    const it=ITEMS[id];if(!it)return;
+    const d=document.createElement('div');d.className='item';
+    d.innerHTML=`<div class="ic">${it.ic}</div><div class="nm">${it.nm}</div><div class="ds">${it.ds}</div>`;
+    g.appendChild(d);
+  });
+}
+function renderMap(){
+  const mc=$('map-canvas'),c=mc.getContext('2d');
+  // Reset transform (in case DPR was applied elsewhere)
+  c.setTransform(1,0,0,1,0,0);
+  c.clearRect(0,0,720,480);
+  const bg=c.createLinearGradient(0,0,720,480);
+  bg.addColorStop(0,'#1a1410');bg.addColorStop(1,'#0e0a10');
+  c.fillStyle=bg;c.fillRect(0,0,720,480);
+  c.strokeStyle='rgba(232,196,106,.08)';c.lineWidth=1;
+  for(let i=0;i<12;i++){c.beginPath();c.moveTo(i*60,0);c.lineTo(i*60,480);c.stroke();}
+  for(let i=0;i<8;i++){c.beginPath();c.moveTo(0,i*60);c.lineTo(720,i*60);c.stroke();}
+  const pts=[
+    {id:'village',name:'Village',x:80,y:360},
+    {id:'castle',name:'Castle',x:200,y:260},
+    {id:'library',name:'Library',x:300,y:180},
+    {id:'forest',name:'Forest',x:400,y:300},
+    {id:'fortress',name:'Fortress',x:480,y:200},
+    {id:'elysia',name:'Elysia',x:560,y:320},
+    {id:'rose_castle',name:'Roses',x:650,y:180},
+    {id:'balcony',name:'Balcony',x:680,y:80}
+  ];
+  c.setLineDash([6,6]);c.strokeStyle='rgba(232,196,106,.45)';c.lineWidth=2;
+  c.beginPath();c.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++)c.lineTo(pts[i].x,pts[i].y);
+  c.stroke();c.setLineDash([]);
+  pts.forEach(p=>{
+    const visited=state.visited.includes(p.id);
+    const isCurrent=state.scene===p.id;
+    c.beginPath();c.arc(p.x,p.y,isCurrent?9:6,0,7);
+    c.fillStyle=isCurrent?'#ffd77a':(visited?'#c99a4a':'rgba(120,100,80,.35)');
+    c.fill();
+    if(visited||isCurrent){
+      const gl=c.createRadialGradient(p.x,p.y,2,p.x,p.y,26);
+      gl.addColorStop(0,'rgba(255,215,122,.5)');gl.addColorStop(1,'rgba(255,215,122,0)');
+      c.fillStyle=gl;c.beginPath();c.arc(p.x,p.y,26,0,7);c.fill();
+    }
+    c.fillStyle=visited||isCurrent?'#e8d8b0':'rgba(150,130,100,.5)';
+    c.font='11px Georgia';c.textAlign='center';
+    c.fillText(p.name,p.x,p.y-14);
+  });
+  c.strokeStyle='rgba(232,196,106,.4)';c.lineWidth=1;
+  c.beginPath();c.arc(680,420,26,0,7);c.stroke();
+  c.fillStyle='#e8c46a';c.beginPath();c.moveTo(680,400);c.lineTo(686,424);c.lineTo(680,420);c.lineTo(674,424);c.closePath();c.fill();
+  c.fillStyle='#c99a4a';c.font='10px Georgia';c.fillText('N',680,398);
+}
+
+/* ================= PAUSE / SETTINGS ================= */
+$('btn-resume').onclick=()=>{AudioM.sfx('click');closeOverlay('pause');};
+$('btn-save').onclick=()=>{save();};
+$('btn-load').onclick=()=>{
+  if(load()){closeOverlay('pause');setScene(state.scene||'village');}
+  else toast('No saved journey found.');
+};
+$('btn-settings').onclick=()=>{closeOverlay('pause');openOverlay('settings');};
+$('btn-restart').onclick=()=>{
+  if(!confirm('Restart from Chapter I? Current progress will be replaced.'))return;
+  state=defaultState();save();closeOverlay('pause');startGame(true);
+};
+$('btn-quit').onclick=()=>{closeOverlay('pause');returnToTitle();};
+
+$('set-music').value=state.settings.music;
+$('set-sfx').value=state.settings.sfx;
+$('set-speed').value=state.settings.speed;
+$('set-music').oninput=e=>{state.settings.music=+e.target.value;AudioM.setMusicVolume(+e.target.value/100);};
+$('set-sfx').oninput=e=>{state.settings.sfx=+e.target.value;AudioM.setSfxVolume(+e.target.value/100);};
+$('set-speed').oninput=e=>{state.settings.speed=+e.target.value;};
+
+/* ================= TITLE ================= */
+$('btn-new').onclick=()=>{
+  AudioM.init();AudioM.resume();AudioM.sfx('chapter');
+  state=defaultState();startGame(true);
+};
+$('btn-continue').onclick=()=>{
+  AudioM.init();AudioM.resume();
+  if(load()){startGame(false);toast('Journey resumed.');}
+  else toast('No saved journey found.');
+};
+$('btn-howto').onclick=()=>openOverlay('howto');
+$('btn-continue').disabled=!hasSave();
+
+function startGame(fresh){
+  $('title').classList.remove('show');
+  showHUD();showActionControls();AudioM.startMusic();
+  if(fresh){
+    DLG.open([
+      {who:'Narrator',line:'Long ago, in a kingdom of stone and gold, a young man named Abdou walked the evening roads.'},
+      {who:'Narrator',line:'He was not a prince. But his heart held the courage of one — and tonight, the sunset would change everything.'},
+      ()=>{addQuest('q_meet');},
+      ()=>{setScene('village');}
+    ]);
+  }else{
+    setScene(state.scene||'village');
+  }
+}
+function returnToTitle(){
+  AudioM.stopMusic();hideHUD();hideActionControls();
+  $('title').classList.add('show');
+  $('btn-continue').disabled=!hasSave();
+}
+
+/* ================= LOOP ================= */
+let lastT=0;
+function loop(t){
+  const dt=Math.min(50,t-lastT);lastT=t;
+  if(transitionDir!==0){
+    sceneTransition+=transitionDir*(dt/380);
+    if(transitionDir>0&&sceneTransition>=1){
+      sceneTransition=1;
+      if(pendingScene){commitScene(pendingScene);pendingScene=null;}
+      transitionDir=-1;
+    }else if(transitionDir<0&&sceneTransition<=0){sceneTransition=0;transitionDir=0;}
+  }
+
+  if(current){
+    const b=current.bounds;
+    // stick movement
+    if(Math.abs(stickDx)>0.15||Math.abs(stickDy)>0.15){
+      const sp=3.2;
+      player.x=clamp(player.x+stickDx*sp*dt/16,b.x1,b.x2);
+      player.y=clamp(player.y+stickDy*sp*dt/16,b.y1,b.y2);
+      player.targetX=null;player.targetY=null;player.walking=true;
+    } else if(player.targetX!=null){
+      const d=dist(player.x,player.y,player.targetX,player.targetY);
+      if(d<4){player.targetX=null;player.targetY=null;player.walking=false;}
+      else{
+        const sp=Math.min(2.6,d*0.12+0.8);
+        player.x=clamp(player.x+(player.targetX-player.x)/d*sp*dt/16,b.x1,b.x2);
+        player.y=clamp(player.y+(player.targetY-player.y)/d*sp*dt/16,b.y1,b.y2);
+        player.walking=true;
+      }
+    } else {
+      player.walking=false;
+    }
+  }
+
+  ctx.setTransform(DPR*scale,0,0,DPR*scale,0,0);
+  ctx.clearRect(0,0,W,H);
+  if(current){
+    current.draw(ctx,t,player);
+    drawHotspots(ctx,t);
+    const vg=ctx.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.85);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.6)');
+    ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  } else {
+    drawSkyGradient(ctx,[[0,'#0a0e1e'],[1,'#1a0e1a']]);
+    drawStars(ctx,140,21,t);drawMoon(ctx,W/2,220,90);
+    drawCastleSilhouette(ctx,W/2-140,320,1.6,'#0c0812');
+  }
+  if(sceneTransition>0){
+    ctx.fillStyle=`rgba(0,0,0,${sceneTransition})`;
+    ctx.fillRect(0,0,W,H);
+  }
+  if(current&&!$('dialogue').classList.contains('show')&&!document.querySelector('.overlay.show')){
+    const h=nearestHotspot(player.x,player.y-30,120);
+    if(h){
+      const ly=h.y-80;
+      ctx.save();
+      ctx.font='14px Georgia';ctx.textAlign='center';
+      const label=h.label||'Interact';
+      const tw=ctx.measureText(label).width+28;
+      ctx.fillStyle='rgba(10,6,14,.85)';
+      ctx.strokeStyle='rgba(232,196,106,.7)';ctx.lineWidth=1;
+      roundRect(ctx,h.x-tw/2,ly-18,tw,28,6);ctx.fill();ctx.stroke();
+      ctx.fillStyle='#ffd77a';ctx.fillText(label,h.x,ly+1);
+      ctx.restore();
+    }
+  }
+  requestAnimationFrame(loop);
+}
+function drawHotspots(c,t){
+  for(const h of current.hotspots){
+    if(h.once&&state.flags['used_'+h.id])continue;
+    const pulse=0.5+0.5*Math.sin(t*0.004+(h.x||0)*0.01);
+    const y=(h.y-50)+Math.sin(t*0.003+(h.x||0))*3;
+    const g=c.createRadialGradient(h.x,y,1,h.x,y,26+pulse*6);
+    g.addColorStop(0,`rgba(255,215,122,${0.5*pulse+0.15})`);
+    g.addColorStop(1,'rgba(255,215,122,0)');
+    c.fillStyle=g;c.beginPath();c.arc(h.x,y,32,0,7);c.fill();
+    c.fillStyle='#ffd77a';c.font='16px Georgia';c.textAlign='center';
+    c.fillText('✦',h.x,y+5);
+  }
+}
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+requestAnimationFrame(loop);
+
+/* ================= PERSIST SETTINGS ================= */
+window.addEventListener('beforeunload',()=>{
+  try{localStorage.setItem(SAVE_KEY+'_settings',JSON.stringify(state.settings));}catch(e){}
+});
+try{
+  const s=localStorage.getItem(SAVE_KEY+'_settings');
+  if(s){
+    const st=JSON.parse(s);
+    state.settings=Object.assign(state.settings,st);
+    $('set-music').value=state.settings.music;
+    $('set-sfx').value=state.settings.sfx;
+    $('set-speed').value=state.settings.speed;
+    AudioM.setMusicVolume(state.settings.music/100);
+    AudioM.setSfxVolume(state.settings.sfx/100);
+  }
+}catch(e){}
+
+/* First gesture unlocks audio */
+const unlock=()=>{AudioM.init();AudioM.resume();window.removeEventListener('pointerdown',unlock);window.removeEventListener('keydown',unlock);};
+window.addEventListener('pointerdown',unlock,{once:true});
+window.addEventListener('keydown',unlock,{once:true});
+
+})();
+</script>
+</body>
+</html>
